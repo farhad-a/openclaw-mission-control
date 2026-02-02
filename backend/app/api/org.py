@@ -20,6 +20,45 @@ from app.schemas.org import (
 router = APIRouter(tags=["org"])
 
 
+def _public_api_base_url() -> str:
+    """Return a LAN-reachable base URL for the Mission Control API.
+
+
+    Priority:
+    1) MISSION_CONTROL_BASE_URL env var (recommended)
+    2) First non-loopback IPv4 from `hostname -I`
+
+
+    Never returns localhost/<avoid-loopback> because agents may run on another machine."""
+
+
+    import os, re, subprocess
+
+
+    explicit = os.environ.get("MISSION_CONTROL_BASE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+
+
+    try:
+        out = subprocess.check_output(["bash", "-lc", "hostname -I"], text=True).strip()
+        # pick first RFC1918-ish IPv4, skip docker/loopback
+        ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", out)
+        for ip in ips:
+            if ip.startswith("127."):
+                continue
+            if ip.startswith("172.17."):
+                continue
+            if ip.startswith("192.168.") or ip.startswith("10.") or ip.startswith("172.16.") or ip.startswith("172."):
+                return f"http://{ip}:8000"
+    except Exception:
+        pass
+
+
+    # Fallback placeholder (should be overridden by env var)
+    return "http://<dev-machine-ip>:8000"
+
+
 def _default_agent_prompt(emp: Employee) -> str:
     """Generate a conservative default prompt for a newly-created agent employee.
 
@@ -34,7 +73,7 @@ def _default_agent_prompt(emp: Employee) -> str:
         f"Your employee_id is {emp.id}.\n"
         f"Title: {title}. Department id: {dept}.\n\n"
         "Mission Control API access (no UI):\n"
-        "- Base URL: http://127.0.0.1:8000 (if running on the same machine as the backend) OR http://<dev-machine-ip>:8000\n"
+        f"- Base URL: {_public_api_base_url()}\n"
         "- Auth: none. REQUIRED header on ALL write operations: X-Actor-Employee-Id: <your_employee_id>\n"
         f"  Example for you: X-Actor-Employee-Id: {emp.id}\n\n"
         "Common endpoints (JSON):\n"
