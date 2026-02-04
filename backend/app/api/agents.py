@@ -52,6 +52,16 @@ def _build_session_key(agent_name: str) -> str:
     return f"{AGENT_SESSION_PREFIX}:{_slugify(agent_name)}:main"
 
 
+def _workspace_path(agent_name: str, workspace_root: str | None) -> str:
+    if not workspace_root:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_workspace_root is required",
+        )
+    root = workspace_root.rstrip("/")
+    return f"{root}/workspace-{_slugify(agent_name)}"
+
+
 def _require_board(session: Session, board_id: UUID | str | None) -> Board:
     if not board_id:
         raise HTTPException(
@@ -69,6 +79,16 @@ def _require_gateway_config(board: Board) -> GatewayConfig:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Board gateway_url is required",
+        )
+    if not board.gateway_main_session_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_main_session_key is required",
+        )
+    if not board.gateway_workspace_root:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_workspace_root is required",
         )
     return GatewayConfig(url=board.gateway_url, token=board.gateway_token)
 
@@ -459,11 +479,8 @@ def delete_agent(
     session.commit()
 
     async def _gateway_cleanup_request() -> None:
-        main_session = board.gateway_main_session_key or "agent:main:main"
-        if not main_session:
-            return
-        workspace_root = board.gateway_workspace_root or "~/.openclaw/workspaces"
-        workspace_path = f"{workspace_root.rstrip('/')}/{_slugify(agent.name)}"
+        main_session = board.gateway_main_session_key
+        workspace_path = _workspace_path(agent.name, board.gateway_workspace_root)
         base_url = settings.base_url or "REPLACE_WITH_BASE_URL"
         cleanup_message = (
             "Cleanup request for deleted agent.\n\n"

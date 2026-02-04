@@ -46,15 +46,29 @@ def _build_session_key(agent_name: str) -> str:
 def _board_gateway_config(board: Board) -> GatewayConfig | None:
     if not board.gateway_url:
         return None
+    if not board.gateway_main_session_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_main_session_key is required",
+        )
+    if not board.gateway_workspace_root:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_workspace_root is required",
+        )
     return GatewayConfig(url=board.gateway_url, token=board.gateway_token)
 
 
 async def _cleanup_agent_on_gateway(agent: Agent, board: Board, config: GatewayConfig) -> None:
     if agent.openclaw_session_id:
         await delete_session(agent.openclaw_session_id, config=config)
-    main_session = board.gateway_main_session_key or "agent:main:main"
-    workspace_root = board.gateway_workspace_root or "~/.openclaw/workspaces"
-    workspace_path = f"{workspace_root.rstrip('/')}/{_slugify(agent.name)}"
+    if not board.gateway_main_session_key:
+        raise OpenClawGatewayError("Board gateway_main_session_key is required")
+    if not board.gateway_workspace_root:
+        raise OpenClawGatewayError("Board gateway_workspace_root is required")
+    main_session = board.gateway_main_session_key
+    workspace_root = board.gateway_workspace_root
+    workspace_path = f"{workspace_root.rstrip('/')}/workspace-{_slugify(agent.name)}"
     cleanup_message = (
         "Cleanup request for deleted agent.\n\n"
         f"Agent name: {agent.name}\n"
@@ -87,6 +101,17 @@ def create_board(
     data = payload.model_dump()
     if data.get("gateway_token") == "":
         data["gateway_token"] = None
+    if data.get("gateway_url"):
+        if not data.get("gateway_main_session_key"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="gateway_main_session_key is required when gateway_url is set",
+            )
+        if not data.get("gateway_workspace_root"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="gateway_workspace_root is required when gateway_url is set",
+            )
     board = Board.model_validate(data)
     session.add(board)
     session.commit()
@@ -114,6 +139,17 @@ def update_board(
         updates["gateway_token"] = None
     for key, value in updates.items():
         setattr(board, key, value)
+    if board.gateway_url:
+        if not board.gateway_main_session_key:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="gateway_main_session_key is required when gateway_url is set",
+            )
+        if not board.gateway_workspace_root:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="gateway_workspace_root is required when gateway_url is set",
+            )
     session.add(board)
     session.commit()
     session.refresh(board)

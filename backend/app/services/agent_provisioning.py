@@ -83,18 +83,24 @@ def _render_file_block(name: str, content: str) -> str:
 
 
 def _workspace_path(agent_name: str, workspace_root: str) -> str:
-    root = workspace_root or "~/.openclaw/workspaces"
+    if not workspace_root:
+        raise ValueError("gateway_workspace_root is required")
+    root = workspace_root
     root = root.rstrip("/")
-    return f"{root}/{_slugify(agent_name)}"
+    return f"{root}/workspace-{_slugify(agent_name)}"
 
 
 def _build_context(agent: Agent, board: Board, auth_token: str) -> dict[str, str]:
+    if not board.gateway_workspace_root:
+        raise ValueError("gateway_workspace_root is required")
+    if not board.gateway_main_session_key:
+        raise ValueError("gateway_main_session_key is required")
     agent_id = str(agent.id)
-    workspace_root = board.gateway_workspace_root or "~/.openclaw/workspaces"
+    workspace_root = board.gateway_workspace_root
     workspace_path = _workspace_path(agent.name, workspace_root)
     session_key = agent.openclaw_session_id or ""
     base_url = settings.base_url or "REPLACE_WITH_BASE_URL"
-    main_session_key = board.gateway_main_session_key or "agent:main:main"
+    main_session_key = board.gateway_main_session_key
     return {
         "agent_name": agent.name,
         "agent_id": agent_id,
@@ -148,8 +154,8 @@ def build_provisioning_message(agent: Agent, board: Board, auth_token: str) -> s
         "4) Leave BOOTSTRAP.md in place; the agent should run it on first start and delete it.\n"
         "5) Register agent id in OpenClaw so it uses this workspace path "
         "(never overwrite the main agent session).\n"
-        "   IMPORTANT: Do NOT use ~/.openclaw/workspace-<name>. The canonical path "
-        "is ~/.openclaw/workspaces/<slug>.\n"
+        "   IMPORTANT: Use the configured gateway workspace root. "
+        "Workspace path must be <root>/workspace-<slug>.\n"
         "6) Add/update the per-agent heartbeat config in the gateway config "
         "for this agent (merge into agents.list entry):\n"
         "```json\n"
@@ -189,8 +195,8 @@ def build_update_message(agent: Agent, board: Board, auth_token: str) -> str:
         "3) Update TOOLS.md with the new BASE_URL/AUTH_TOKEN/SESSION_KEY values.\n"
         "4) Do NOT create a new agent or session; update the existing one in place.\n"
         "5) Keep BOOTSTRAP.md only if it already exists; do not recreate it if missing.\n\n"
-        "   IMPORTANT: Do NOT use ~/.openclaw/workspace-<name>. The canonical path "
-        "is ~/.openclaw/workspaces/<slug>.\n"
+        "   IMPORTANT: Use the configured gateway workspace root. "
+        "Workspace path must be <root>/workspace-<slug>.\n"
         "6) Update the per-agent heartbeat config in the gateway config for this agent:\n"
         "```json\n"
         f"{heartbeat_snippet}\n"
@@ -206,9 +212,11 @@ async def send_provisioning_message(
     board: Board,
     auth_token: str,
 ) -> None:
-    main_session = board.gateway_main_session_key or "agent:main:main"
     if not board.gateway_url:
         return
+    if not board.gateway_main_session_key:
+        raise ValueError("gateway_main_session_key is required")
+    main_session = board.gateway_main_session_key
     config = GatewayConfig(url=board.gateway_url, token=board.gateway_token)
     await ensure_session(main_session, config=config, label="Main Agent")
     message = build_provisioning_message(agent, board, auth_token)
@@ -220,9 +228,11 @@ async def send_update_message(
     board: Board,
     auth_token: str,
 ) -> None:
-    main_session = board.gateway_main_session_key or "agent:main:main"
     if not board.gateway_url:
         return
+    if not board.gateway_main_session_key:
+        raise ValueError("gateway_main_session_key is required")
+    main_session = board.gateway_main_session_key
     config = GatewayConfig(url=board.gateway_url, token=board.gateway_token)
     await ensure_session(main_session, config=config, label="Main Agent")
     message = build_update_message(agent, board, auth_token)

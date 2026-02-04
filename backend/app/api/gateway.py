@@ -38,6 +38,11 @@ def _require_board_config(session: Session, board_id: str | None) -> tuple[Board
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Board gateway_url is required",
         )
+    if not board.gateway_main_session_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Board gateway_main_session_key is required",
+        )
     return board, GatewayConfig(url=board.gateway_url, token=board.gateway_token)
 
 
@@ -54,7 +59,7 @@ async def gateway_status(
             sessions_list = list(sessions.get("sessions") or [])
         else:
             sessions_list = list(sessions or [])
-        main_session = board.gateway_main_session_key or "agent:main:main"
+        main_session = board.gateway_main_session_key
         main_session_entry: object | None = None
         main_session_error: str | None = None
         if main_session:
@@ -99,7 +104,7 @@ async def list_sessions(
     else:
         sessions_list = list(sessions or [])
 
-    main_session = board.gateway_main_session_key or "agent:main:main"
+    main_session = board.gateway_main_session_key
     main_session_entry: object | None = None
     if main_session:
         try:
@@ -134,7 +139,7 @@ async def get_gateway_session(
         sessions_list = list(sessions.get("sessions") or [])
     else:
         sessions_list = list(sessions or [])
-    main_session = board.gateway_main_session_key or "agent:main:main"
+    main_session = board.gateway_main_session_key
     if main_session and not any(
         session.get("key") == main_session for session in sessions_list
     ):
@@ -194,7 +199,7 @@ async def send_session_message(
         )
     board, config = _require_board_config(session, board_id)
     try:
-        main_session = board.gateway_main_session_key or "agent:main:main"
+        main_session = board.gateway_main_session_key
         if main_session and session_id == main_session:
             await ensure_session(main_session, config=config, label="Main Agent")
         await send_message(content, session_key=session_id, config=config)

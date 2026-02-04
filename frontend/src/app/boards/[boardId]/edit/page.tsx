@@ -206,7 +206,7 @@ export default function EditBoardPage() {
               <Input
                 value={gatewayWorkspaceRoot}
                 onChange={(event) => setGatewayWorkspaceRoot(event.target.value)}
-                placeholder="~/.openclaw/workspaces"
+                placeholder="~/.openclaw"
                 disabled={isLoading}
               />
             </div>
