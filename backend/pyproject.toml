@@ -47,3 +47,6 @@ warn_redundant_casts = true
 warn_unused_configs = true
 check_untyped_defs = true
 plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
