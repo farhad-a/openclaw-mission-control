@@ -50,7 +50,10 @@ import {
   streamApprovalsApiV1BoardsBoardIdApprovalsStreamGet,
   updateApprovalApiV1BoardsBoardIdApprovalsApprovalIdPatch,
 } from "@/api/generated/approvals/approvals";
-import { listTaskCommentFeedApiV1ActivityTaskCommentsGet } from "@/api/generated/activity/activity";
+import {
+  listTaskCommentFeedApiV1ActivityTaskCommentsGet,
+  streamTaskCommentFeedApiV1ActivityTaskCommentsStreamGet,
+} from "@/api/generated/activity/activity";
 import { getBoardSnapshotApiV1BoardsBoardIdSnapshotGet } from "@/api/generated/boards/boards";
 import {
   createBoardMemoryApiV1BoardsBoardIdMemoryPost,
@@ -219,6 +222,7 @@ const LiveFeedCard = memo(function LiveFeedCard({
   authorRole,
   authorAvatar,
   onViewTask,
+  isNew,
 }: {
   comment: TaskComment;
   taskTitle: string;
@@ -226,10 +230,18 @@ const LiveFeedCard = memo(function LiveFeedCard({
   authorRole?: string | null;
   authorAvatar: string;
   onViewTask?: () => void;
+  isNew?: boolean;
 }) {
   const message = (comment.message ?? "").trim();
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 transition hover:border-slate-300">
+    <div
+      className={cn(
+        "rounded-xl border p-3 transition-colors duration-300",
+        isNew
+          ? "border-blue-200 bg-blue-50/70 shadow-sm hover:border-blue-300 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:slide-in-from-right-2 motion-safe:duration-300"
+          : "border-slate-200 bg-white hover:border-slate-300",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
           {authorAvatar}
@@ -316,6 +328,11 @@ export default function BoardDetailPage() {
   const openedTaskIdFromUrlRef = useRef<string | null>(null);
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [liveFeed, setLiveFeed] = useState<TaskComment[]>([]);
+  const liveFeedRef = useRef<TaskComment[]>([]);
+  const liveFeedFlashTimersRef = useRef<Record<string, number>>({});
+  const [liveFeedFlashIds, setLiveFeedFlashIds] = useState<
+    Record<string, boolean>
+  >({});
   const [isLiveFeedHistoryLoading, setIsLiveFeedHistoryLoading] =
     useState(false);
   const [liveFeedHistoryError, setLiveFeedHistoryError] = useState<
@@ -359,7 +376,9 @@ export default function BoardDetailPage() {
   const [deleteTaskError, setDeleteTaskError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
   const [isLiveFeedOpen, setIsLiveFeedOpen] = useState(false);
+  const isLiveFeedOpenRef = useRef(false);
   const pushLiveFeed = useCallback((comment: TaskComment) => {
+    const alreadySeen = liveFeedRef.current.some((item) => item.id === comment.id);
     setLiveFeed((prev) => {
       if (prev.some((item) => item.id === comment.id)) {
         return prev;
@@ -367,6 +386,28 @@ export default function BoardDetailPage() {
       const next = [comment, ...prev];
       return next.slice(0, 50);
     });
+
+    if (alreadySeen) return;
+    if (!isLiveFeedOpenRef.current) return;
+
+    setLiveFeedFlashIds((prev) =>
+      prev[comment.id] ? prev : { ...prev, [comment.id]: true },
+    );
+
+    if (typeof window === "undefined") return;
+    const existingTimer = liveFeedFlashTimersRef.current[comment.id];
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer);
+    }
+    liveFeedFlashTimersRef.current[comment.id] = window.setTimeout(() => {
+      delete liveFeedFlashTimersRef.current[comment.id];
+      setLiveFeedFlashIds((prev) => {
+        if (!prev[comment.id]) return prev;
+        const next = { ...prev };
+        delete next[comment.id];
+        return next;
+      });
+    }, 2200);
   }, []);
 
   useEffect(() => {
@@ -374,7 +415,25 @@ export default function BoardDetailPage() {
     setIsLiveFeedHistoryLoading(false);
     setLiveFeedHistoryError(null);
     setLiveFeed([]);
+    setLiveFeedFlashIds({});
+    if (typeof window !== "undefined") {
+      Object.values(liveFeedFlashTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+    }
+    liveFeedFlashTimersRef.current = {};
   }, [boardId]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined") {
+        Object.values(liveFeedFlashTimersRef.current).forEach((timerId) => {
+          window.clearTimeout(timerId);
+        });
+      }
+      liveFeedFlashTimersRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     if (!isLiveFeedOpen) return;
@@ -577,6 +636,14 @@ export default function BoardDetailPage() {
   }, [chatMessages]);
 
   useEffect(() => {
+    liveFeedRef.current = liveFeed;
+  }, [liveFeed]);
+
+  useEffect(() => {
+    isLiveFeedOpenRef.current = isLiveFeedOpen;
+  }, [isLiveFeedOpen]);
+
+  useEffect(() => {
     if (!isChatOpen) return;
     const timeout = window.setTimeout(() => {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -715,6 +782,125 @@ export default function BoardDetailPage() {
       }
     };
   }, [board, boardId, isChatOpen, isPageActive, isSignedIn]);
+
+  useEffect(() => {
+    if (!isPageActive) return;
+    if (!isLiveFeedOpen) return;
+    if (!isSignedIn || !boardId) return;
+    let isCancelled = false;
+    const abortController = new AbortController();
+    const backoff = createExponentialBackoff(SSE_RECONNECT_BACKOFF);
+    let reconnectTimeout: number | undefined;
+
+    const connect = async () => {
+      try {
+        const since = (() => {
+          let latestTime = 0;
+          liveFeedRef.current.forEach((comment) => {
+            const time = apiDatetimeToMs(comment.created_at);
+            if (time !== null && time > latestTime) {
+              latestTime = time;
+            }
+          });
+          return latestTime ? new Date(latestTime).toISOString() : null;
+        })();
+
+        const streamResult =
+          await streamTaskCommentFeedApiV1ActivityTaskCommentsStreamGet(
+            {
+              board_id: boardId,
+              since: since ?? null,
+            },
+            {
+              headers: { Accept: "text/event-stream" },
+              signal: abortController.signal,
+            },
+          );
+        if (streamResult.status !== 200) {
+          throw new Error("Unable to connect live feed stream.");
+        }
+        const response = streamResult.data as Response;
+        if (!(response instanceof Response) || !response.body) {
+          throw new Error("Unable to connect live feed stream.");
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (!isCancelled) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value && value.length) {
+            backoff.reset();
+          }
+          buffer += decoder.decode(value, { stream: true });
+          buffer = buffer.replace(/\r\n/g, "\n");
+          let boundary = buffer.indexOf("\n\n");
+          while (boundary !== -1) {
+            const raw = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            const lines = raw.split("\n");
+            let eventType = "message";
+            let data = "";
+            for (const line of lines) {
+              if (line.startsWith("event:")) {
+                eventType = line.slice(6).trim();
+              } else if (line.startsWith("data:")) {
+                data += line.slice(5).trim();
+              }
+            }
+            if (eventType === "comment" && data) {
+              try {
+                const payload = JSON.parse(data) as {
+                  comment?: {
+                    id: string;
+                    created_at: string;
+                    message?: string | null;
+                    agent_id?: string | null;
+                    task_id?: string | null;
+                  };
+                };
+                if (payload.comment) {
+                  pushLiveFeed({
+                    id: payload.comment.id,
+                    created_at: payload.comment.created_at,
+                    message: payload.comment.message ?? null,
+                    agent_id: payload.comment.agent_id ?? null,
+                    task_id: payload.comment.task_id ?? null,
+                  });
+                }
+              } catch {
+                // ignore malformed
+              }
+            }
+            boundary = buffer.indexOf("\n\n");
+          }
+        }
+      } catch {
+        // Reconnect handled below.
+      }
+
+      if (!isCancelled) {
+        if (reconnectTimeout !== undefined) {
+          window.clearTimeout(reconnectTimeout);
+        }
+        const delay = backoff.nextDelayMs();
+        reconnectTimeout = window.setTimeout(() => {
+          reconnectTimeout = undefined;
+          void connect();
+        }, delay);
+      }
+    };
+
+    void connect();
+    return () => {
+      isCancelled = true;
+      abortController.abort();
+      if (reconnectTimeout !== undefined) {
+        window.clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [boardId, isLiveFeedOpen, isPageActive, isSignedIn, pushLiveFeed]);
 
   useEffect(() => {
     if (!isPageActive) return;
@@ -2573,6 +2759,7 @@ export default function BoardDetailPage() {
                     <LiveFeedCard
                       key={comment.id}
                       comment={comment}
+                      isNew={Boolean(liveFeedFlashIds[comment.id])}
                       taskTitle={
                         taskId ? (taskTitleById.get(taskId) ?? "Task") : "Task"
                       }
