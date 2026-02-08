@@ -2,6 +2,8 @@
 
 Mission Control is the **web UI + HTTP API** for operating OpenClaw. It’s where you manage boards, tasks, agents, approvals, and (optionally) gateway connections.
 
+> Auth note: **Clerk is required for now** (current product direction). The codebase includes gating so CI/local can run with placeholders, but real deployments should configure Clerk.
+
 At a high level:
 - The **frontend** is a Next.js app used by humans.
 - The **backend** is a FastAPI service that exposes REST endpoints under `/api/v1/*`.
@@ -20,7 +22,7 @@ flowchart LR
   BE -->|SQL| PG[(Postgres :5432)]
   BE -->|Redis protocol| R[(Redis :6379)]
 
-  BE -->|WebSocket| GW[OpenClaw Gateway]
+  BE -->|WebSocket (optional integration)| GW[OpenClaw Gateway]
   GW --> OC[OpenClaw runtime]
 ```
 
@@ -29,8 +31,8 @@ flowchart LR
 - Routes/pages: `frontend/src/app/*` (Next.js App Router)
 - API utilities: `frontend/src/lib/*` and `frontend/src/api/*`
 
-**Auth (Clerk, optional)**
-- Clerk is gated so CI/local can run without secrets.
+**Auth (Clerk, required for now)**
+- The codebase includes gating so CI/local can run without secrets, but real deployments should configure Clerk.
 - See `frontend/src/auth/clerkKey.ts`, `frontend/src/auth/clerk.tsx`, and `frontend/src/proxy.ts`.
 
 ### Backend (FastAPI)
@@ -64,8 +66,8 @@ Mission Control can call into an OpenClaw Gateway over WebSockets.
 2. Frontend calls backend endpoints under `/api/v1/*`.
 3. Backend reads/writes Postgres and may use Redis depending on the operation.
 
-### Auth (Clerk — optional)
-- **Frontend** enables Clerk only when a publishable key is present/valid.
+### Auth (Clerk — required for now)
+- **Frontend** enables Clerk when a publishable key is present/valid.
 - **Backend** uses `fastapi-clerk-auth` when `CLERK_JWKS_URL` is configured.
   - See `backend/app/core/auth.py`.
 
@@ -111,8 +113,15 @@ Backend:
 Frontend:
 1. `frontend/src/app/*` — main UI routes
 2. `frontend/src/lib/api-base.ts` — backend calls
-3. `frontend/src/auth/*` — “Clerk optional” behavior
+3. `frontend/src/auth/*` — Clerk integration (gated for CI/local)
+
+## Related docs
+- Self-host (Docker Compose): see repo root README: [Quick start (self-host with Docker Compose)](../../README.md#quick-start-self-host-with-docker-compose)
+- Production-ish deployment: [`docs/production/README.md`](../production/README.md)
+- Testing (Cypress/Clerk): [`docs/testing/README.md`](../testing/README.md)
+- Troubleshooting: [`docs/troubleshooting/README.md`](../troubleshooting/README.md)
 
 ## Notes / gotchas
 - Mermaid rendering depends on the markdown renderer.
+- `NEXT_PUBLIC_API_URL` must be reachable from the browser (host), not just from within Docker.
 - If Compose loads `frontend/.env.example` directly, placeholder Clerk keys can accidentally enable Clerk; prefer user-managed env files.
