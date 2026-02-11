@@ -15,7 +15,7 @@ When running Compose, you get:
   - Health check: `GET /healthz`
 - **Frontend UI** (Next.js) on `http://localhost:${FRONTEND_PORT:-3000}`
 
-Auth (Clerk) is **required** right now. You must configure Clerk keys for the frontend, and configure `CLERK_JWKS_URL` for the backend so protected API routes can verify JWTs.
+Auth (Clerk) is **required** right now. You must configure Clerk keys for the frontend and backend (`CLERK_SECRET_KEY`).
 
 ## Requirements
 
@@ -133,18 +133,24 @@ NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/boards
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/boards
 ```
 
-### Backend (JWT verification)
+### Backend (auth)
 
-The backend verifies Clerk JWTs using **`CLERK_JWKS_URL`**.
+The backend authenticates requests using the Clerk SDK and **`CLERK_SECRET_KEY`** (see `backend/app/core/auth.py`).
 
-- Compose loads `backend/.env.example` by default, where `CLERK_JWKS_URL` is empty.
-- For a real deployment, provide a real value either by:
-  1) creating `backend/.env` and updating `compose.yml` to load it (preferred), **or**
-  2) adding `CLERK_JWKS_URL: ${CLERK_JWKS_URL}` under `backend.environment` and setting it in root `.env`.
+Create `backend/.env` (this file is **not** committed) with at least:
 
-Related backend env vars (optional tuning):
-- `CLERK_VERIFY_IAT` (default: true)
-- `CLERK_LEEWAY` (default: 10.0)
+```env
+CLERK_SECRET_KEY=sk_test_your_real_key
+
+# Optional tuning
+CLERK_API_URL=https://api.clerk.com
+CLERK_VERIFY_IAT=true
+CLERK_LEEWAY=10.0
+```
+
+Then either:
+1) update `compose.yml` to load `backend/.env` (recommended), or
+2) pass the values via `services.backend.environment`.
 
 **Security:** treat `CLERK_SECRET_KEY` like a password. Do not commit it.
 

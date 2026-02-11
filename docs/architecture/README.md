@@ -29,9 +29,11 @@ flowchart LR
 - Routes/pages: `frontend/src/app/*` (Next.js App Router)
 - API utilities: `frontend/src/lib/*` and `frontend/src/api/*`
 
-**Auth (Clerk, required for now)**
-- The codebase includes gating so CI/local can run without secrets, but real deployments should configure Clerk.
-- See `frontend/src/auth/clerkKey.ts`, `frontend/src/auth/clerk.tsx`, and `frontend/src/proxy.ts`.
+**Auth (Clerk, required)**
+- Clerk is required for real deployments and currently required by backend config (see `backend/app/core/config.py`).
+- Frontend uses Clerk when keys are configured; see `frontend/src/auth/clerkKey.ts` and `frontend/src/auth/clerk.tsx`.
+- Backend authenticates requests using the Clerk SDK and `CLERK_SECRET_KEY`; see `backend/app/core/auth.py`.
+
 
 ### Backend (FastAPI)
 - Location: `backend/`
@@ -52,8 +54,8 @@ flowchart LR
 ### Gateway integration (optional)
 Mission Control can call into an OpenClaw Gateway over WebSockets.
 - Client + protocol: `backend/app/services/openclaw/gateway_rpc.py`
-- Protocol doc: `docs/openclaw_gateway_ws.md`
-- Base gateway config (getting started): `docs/openclaw_gateway_base_config.md`
+- Protocol doc: [Gateway WebSocket protocol](../openclaw_gateway_ws.md)
+- Base gateway config (getting started): [Gateway base config](../openclaw_gateway_base_config.md)
 
 ## Request flows
 
@@ -62,11 +64,9 @@ Mission Control can call into an OpenClaw Gateway over WebSockets.
 2. Frontend calls backend endpoints under `/api/v1/*`.
 3. Backend reads/writes Postgres.
 
-### Auth (Clerk — required for now)
-- **Frontend** enables Clerk when a publishable key is present/valid.
-- **Backend** uses `fastapi-clerk-auth` when `CLERK_JWKS_URL` is configured.
-  - See `backend/app/core/auth.py`.
-
+### Auth (Clerk — required)
+- **Frontend** uses Clerk when keys are configured (see `frontend/src/auth/*`).
+- **Backend** authenticates requests using the Clerk SDK and `CLERK_SECRET_KEY` (see `backend/app/core/auth.py`).
 ### Agent access (X-Agent-Token)
 Automation/agents can use the “agent” API surface:
 - Endpoints under `/api/v1/agent/*` (router: `backend/app/api/agent.py`).
@@ -110,9 +110,9 @@ Frontend:
 
 ## Related docs
 - Self-host (Docker Compose): see repo root README: [Quick start (self-host with Docker Compose)](../../README.md#quick-start-self-host-with-docker-compose)
-- Production-ish deployment: [`docs/production/README.md`](../production/README.md)
-- Testing (Cypress/Clerk): [`docs/testing/README.md`](../testing/README.md)
-- Troubleshooting: [`docs/troubleshooting/README.md`](../troubleshooting/README.md)
+- Production-ish deployment: [Production notes](../production/README.md)
+- Testing (Cypress/Clerk): [Testing guide](../testing/README.md)
+- Troubleshooting: [Troubleshooting](../troubleshooting/README.md)
 
 ## Notes / gotchas
 - Mermaid rendering depends on the markdown renderer.
