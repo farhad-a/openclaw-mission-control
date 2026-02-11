@@ -13,8 +13,8 @@ This is the “quick triage” page. For detailed playbooks and diagnostics, use
 - Check backend `/healthz`.
 
 ### Frontend keeps redirecting / Clerk errors
-- If you’re running locally without Clerk, keep `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` unset/blank.
-- See: [repo README Clerk note](../README.md#note-on-auth-clerk).
+- Verify your Clerk keys are set correctly in the frontend environment.
+- See: `docs/deployment/README.md` (Clerk auth notes).
 
 ### Backend returns 5xx
 - Check DB connectivity (`DATABASE_URL`) and migrations.

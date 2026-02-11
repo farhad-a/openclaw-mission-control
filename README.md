@@ -32,10 +32,13 @@ Operational deep dives:
 
 ## Authentication (Clerk)
 
-Clerk is **optional for local/self-host**.
+**Clerk is currently required**.
 
-- The frontend enables Clerk only when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set.
-- If you’re not configuring Clerk locally, keep Clerk env vars **unset/blank**.
+You must configure Clerk keys for:
+- the frontend (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`)
+- the backend (`CLERK_SECRET_KEY`)
+
+See: [`docs/deployment/README.md`](./docs/deployment/README.md#clerk-auth-notes).
 
 ## Deployment modes
 
@@ -49,6 +52,9 @@ cp .env.example .env
 # REQUIRED: the browser must be able to reach the backend.
 # NEXT_PUBLIC_API_URL must be reachable from the *browser* (host), not an internal Docker network name.
 # Missing/blank NEXT_PUBLIC_API_URL will break frontend API calls (e.g. Activity feed).
+
+# REQUIRED: Clerk config.
+# Provide real Clerk values via frontend/.env (recommended) and backend/.env.
 
 docker compose -f compose.yml --env-file .env up -d --build
 ```

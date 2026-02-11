@@ -88,8 +88,8 @@ This table is based on `backend/app/core/config.py`, `.env.example`, `backend/.e
 | Variable | Required? | Purpose | Default / example | Footguns |
 |---|---:|---|---|---|
 | `NEXT_PUBLIC_API_URL` | **yes** | Backend base URL used by the browser | `http://localhost:8000` | Must be browser-reachable |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | optional | Enables Clerk in the frontend when set | (none) | Placeholder values can unintentionally enable Clerk |
-| `CLERK_SECRET_KEY` | depends | Used for Clerk flows (e.g. E2E) | (none) | Don’t commit; required for some testing setups |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | **yes** | Enables Clerk in the frontend | (none) | Must be a real publishable key |
+| `CLERK_SECRET_KEY` | **yes** | Clerk secret key used by the frontend (server-side) and E2E | (none) | Do not commit; required for Clerk-enabled operation |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL` | optional | Post-login redirect | `/boards` | — |
 | `NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL` | optional | Post-signup redirect | `/boards` | — |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | optional | Fallback redirect | `/boards` | — |

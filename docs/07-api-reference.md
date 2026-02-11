@@ -12,7 +12,7 @@ It is derived from `backend/app/main.py` (router registration) and `backend/app/
 - API prefix: `/api/v1/*` (see `backend/app/main.py`)
 
 ## Auth model (recap)
-- **Clerk (user auth)**: used by the human web UI; frontend enables Clerk when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set; backend verifies JWTs when `CLERK_JWKS_URL` is configured (see `backend/app/core/auth.py`).
+- **Clerk (user auth)**: used by the human web UI; frontend enables Clerk when `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set; backend verifies requests using `CLERK_SECRET_KEY` via the Clerk SDK (see `backend/app/core/auth.py`).
 - **X-Agent-Token (agent auth)**: used by automation/agents; send header `X-Agent-Token: <token>` to `/api/v1/agent/*` endpoints (see `backend/app/core/agent_auth.py`).
 
 ## Route groups (modules)
