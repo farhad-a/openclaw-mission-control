@@ -190,7 +190,8 @@ const approvalSummary = (approval: Approval, boardLabel?: string | null) => {
   const rows: Array<{ label: string; value: string }> = [];
   if (boardLabel) rows.push({ label: "Board", value: boardLabel });
   if (taskIds.length === 1) rows.push({ label: "Task", value: taskIds[0] });
-  if (taskIds.length > 1) rows.push({ label: "Tasks", value: taskIds.join(", ") });
+  if (taskIds.length > 1)
+    rows.push({ label: "Tasks", value: taskIds.join(", ") });
   if (isAssign) {
     rows.push({
       label: "Assignee",

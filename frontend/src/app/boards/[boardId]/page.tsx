@@ -1748,8 +1748,9 @@ export default function BoardDetailPage() {
         if (!Array.isArray(value)) return [];
         return value.filter((item): item is string => typeof item === "string");
       };
-      const linkedTaskIds = (approval as Approval & { task_ids?: string[] | null })
-        .task_ids;
+      const linkedTaskIds = (
+        approval as Approval & { task_ids?: string[] | null }
+      ).task_ids;
       const singleTaskId =
         approval.task_id ??
         payloadValue("task_id") ??
@@ -1764,7 +1765,9 @@ export default function BoardDetailPage() {
       ];
       return [...new Set(merged)];
     };
-    return approvals.filter((approval) => taskIdsForApproval(approval).includes(taskId));
+    return approvals.filter((approval) =>
+      taskIdsForApproval(approval).includes(taskId),
+    );
   }, [approvals, selectedTask]);
 
   const workingAgentIds = useMemo(() => {
@@ -2221,8 +2224,9 @@ export default function BoardDetailPage() {
 
   const approvalTaskIds = (approval: Approval) => {
     const payload = approval.payload ?? {};
-    const linkedTaskIds = (approval as Approval & { task_ids?: string[] | null })
-      .task_ids;
+    const linkedTaskIds = (
+      approval as Approval & { task_ids?: string[] | null }
+    ).task_ids;
     const singleTaskId =
       approval.task_id ??
       approvalPayloadValue(payload, "task_id") ??
@@ -2259,7 +2263,8 @@ export default function BoardDetailPage() {
     const isAssign = approval.action_type.includes("assign");
     const rows: Array<{ label: string; value: string }> = [];
     if (taskIds.length === 1) rows.push({ label: "Task", value: taskIds[0] });
-    if (taskIds.length > 1) rows.push({ label: "Tasks", value: taskIds.join(", ") });
+    if (taskIds.length > 1)
+      rows.push({ label: "Tasks", value: taskIds.join(", ") });
     if (isAssign) {
       rows.push({
         label: "Assignee",
