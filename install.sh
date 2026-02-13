@@ -73,43 +73,83 @@ parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --mode)
-        FORCE_MODE="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --mode"
+        fi
+        FORCE_MODE="$2"
         shift 2
         ;;
       --backend-port)
-        FORCE_BACKEND_PORT="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --backend-port"
+        fi
+        FORCE_BACKEND_PORT="$2"
         shift 2
         ;;
       --frontend-port)
-        FORCE_FRONTEND_PORT="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --frontend-port"
+        fi
+        FORCE_FRONTEND_PORT="$2"
         shift 2
         ;;
       --public-host)
-        FORCE_PUBLIC_HOST="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --public-host"
+        fi
+        FORCE_PUBLIC_HOST="$2"
         shift 2
         ;;
       --api-url)
-        FORCE_API_URL="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --api-url"
+        fi
+        FORCE_API_URL="$2"
         shift 2
         ;;
       --token-mode)
-        FORCE_TOKEN_MODE="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --token-mode"
+        fi
+        FORCE_TOKEN_MODE="$2"
         shift 2
         ;;
       --local-auth-token)
-        FORCE_LOCAL_AUTH_TOKEN="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --local-auth-token"
+        fi
+        FORCE_LOCAL_AUTH_TOKEN="$2"
         shift 2
         ;;
       --db-mode)
-        FORCE_DB_MODE="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --db-mode"
+        fi
+        FORCE_DB_MODE="$2"
         shift 2
         ;;
       --database-url)
-        FORCE_DATABASE_URL="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --database-url"
+        fi
+        FORCE_DATABASE_URL="$2"
         shift 2
         ;;
       --start-services)
-        FORCE_START_SERVICES="${2:-}"
+        if [[ $# -lt 2 || -z ${2:-} ]]; then
+          usage
+          die "Missing value for --start-services"
+        fi
+        FORCE_START_SERVICES="$2"
         shift 2
         ;;
       -h|--help)
