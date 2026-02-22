@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import ORJSONResponse
 from fastapi_pagination import add_pagination
 
 from app.api.activity import router as activity_router
@@ -448,6 +449,7 @@ app = MissionControlFastAPI(
     version="0.1.0",
     lifespan=lifespan,
     openapi_tags=OPENAPI_TAGS,
+    default_response_class=ORJSONResponse,
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
