@@ -15,12 +15,23 @@ describe("/boards/:id task board", () => {
   });
 
   function stubEmptySse() {
-    // Any SSE endpoint should not hang the UI in tests.
-    cy.intercept("GET", `${apiBase}/**/stream*`, {
+    // Keep known board-related SSE endpoints quiet in tests.
+    const emptySse = {
       statusCode: 200,
       headers: { "content-type": "text/event-stream" },
       body: "",
-    });
+    };
+
+    cy.intercept("GET", `${apiBase}/boards/*/tasks/stream*`, emptySse).as(
+      "tasksStream",
+    );
+    cy.intercept("GET", `${apiBase}/boards/*/approvals/stream*`, emptySse).as(
+      "approvalsStream",
+    );
+    cy.intercept("GET", `${apiBase}/boards/*/memory/stream*`, emptySse).as(
+      "memoryStream",
+    );
+    cy.intercept("GET", `${apiBase}/agents/stream*`, emptySse).as("agentsStream");
   }
 
   function openEditTaskDialog() {
