@@ -137,7 +137,7 @@ describe("/boards/:id task board", () => {
     cy.intercept("GET", `${apiBase}/boards/b1/group-snapshot*`, {
       statusCode: 200,
       body: { group: null, boards: [] },
-    });
+    }).as("groupSnapshot");
 
     cy.intercept("POST", `${apiBase}/boards/b1/tasks`, (req) => {
       // Minimal assertion the UI sends expected fields.
@@ -213,6 +213,7 @@ describe("/boards/:id task board", () => {
 
     cy.wait([
       "@snapshot",
+      "@groupSnapshot",
       "@membership",
       "@me",
       "@organizations",
