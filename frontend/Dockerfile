@@ -15,7 +15,7 @@ COPY . ./
 # Allows configuring the API URL at build time.
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ARG NEXT_PUBLIC_AUTH_MODE
+ARG NEXT_PUBLIC_AUTH_MODE=local
 ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
 
 RUN npm run build
@@ -24,10 +24,11 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ARG NEXT_PUBLIC_AUTH_MODE
+ARG NEXT_PUBLIC_AUTH_MODE=local
 
-# If provided at runtime, Next will expose NEXT_PUBLIC_* to the browser as well
-# (but note some values may be baked at build time).
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time.
+# Default is "local" (self-host). Override via --build-arg NEXT_PUBLIC_AUTH_MODE=clerk
+# when building for Clerk-based deployments.
 ENV NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
 
