@@ -88,7 +88,6 @@ cp .env.example .env
 Before startup:
 
 - Set `LOCAL_AUTH_TOKEN` to a non-placeholder value (minimum 50 characters) when `AUTH_MODE=local`.
-- Ensure `NEXT_PUBLIC_API_URL` is reachable from your browser.
 
 ### 2. Start Mission Control
 

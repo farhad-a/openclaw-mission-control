@@ -1,12 +1,22 @@
 "use client";
 
 import { AuthMode } from "@/auth/mode";
+import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 
 let localToken: string | null = null;
 const STORAGE_KEY = "mc_local_auth_token";
 
+/**
+ * Function-based check for non-React contexts (e.g. mutator.ts fetch wrapper).
+ */
 export function isLocalAuthMode(): boolean {
-  return process.env.NEXT_PUBLIC_AUTH_MODE === AuthMode.Local;
+  return process.env.AUTH_MODE === AuthMode.Local;
+}
+
+/** Hook-based check for React components — reads from RuntimeConfigProvider. */
+export function useIsLocalAuthMode(): boolean {
+  const { authMode } = useRuntimeConfig();
+  return authMode === AuthMode.Local;
 }
 
 export function setLocalAuthToken(token: string): void {

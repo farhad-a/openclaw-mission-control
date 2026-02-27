@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { SignOutButton, useUser } from "@/auth/clerk";
-import { clearLocalAuthToken, isLocalAuthMode } from "@/auth/localAuth";
+import { clearLocalAuthToken, useIsLocalAuthMode } from "@/auth/localAuth";
 import {
   Activity,
   Bot,
@@ -39,7 +39,7 @@ export function UserMenu({
 }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
-  const localMode = isLocalAuthMode();
+  const localMode = useIsLocalAuthMode();
   if (!user && !localMode) return null;
 
   const avatarUrl = localMode ? null : (user?.imageUrl ?? null);

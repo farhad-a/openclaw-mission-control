@@ -2,7 +2,7 @@
 
 This package is the **Next.js** web UI for OpenClaw Mission Control.
 
-- Talks to the Mission Control **backend** over HTTP (typically `http://localhost:8000`).
+- API calls are proxied through the Next.js server (`/api/v1/*` → backend), so the browser only needs to reach the frontend.
 - Uses **React Query** for data fetching.
 - Supports two auth modes:
   - **local** shared bearer token mode (self-host default)
@@ -38,26 +38,25 @@ npm run dev:lan
 
 ## Environment variables
 
+All frontend configuration is **runtime** — no rebuild needed to switch settings.
 The frontend reads configuration from standard Next.js env files (`.env.local`, `.env`, etc.).
 
-### Required
+### `BACKEND_URL`
 
-#### `NEXT_PUBLIC_API_URL`
+URL the Next.js server uses to proxy API requests to the backend (server-to-server, not exposed to the browser).
 
-Base URL of the backend API.
-
-- Default for local dev: `http://localhost:8000`
-- Used by the generated API client and helpers (see `src/lib/api-base.ts` and `src/api/mutator.ts`).
+- Default: `http://localhost:8000`
+- Set via container environment in Docker (see `compose.yml`).
 
 Example:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+BACKEND_URL=http://localhost:8000
 ```
 
 ### Authentication mode
 
-Set `NEXT_PUBLIC_AUTH_MODE` to one of:
+Set `AUTH_MODE` to one of:
 
 - `local` (default for self-host)
 - `clerk`
@@ -69,15 +68,15 @@ For `local` mode:
 
 For `clerk` mode, configure:
 
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- optional `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`
-- optional `NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL`
+- `CLERK_PUBLISHABLE_KEY`
+- optional `CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`
+- optional `CLERK_AFTER_SIGN_OUT_URL`
 
 ## How the frontend talks to the backend
 
-### API base URL
+### API proxy
 
-The client builds URLs using `NEXT_PUBLIC_API_URL` (normalized to remove trailing slashes).
+The Next.js server proxies all `/api/v1/*` requests to the backend at `BACKEND_URL` (read at runtime). The browser never talks to the backend directly.
 
 ### Generated API client (Orval + React Query)
 
@@ -104,7 +103,7 @@ ORVAL_INPUT=http://localhost:8000/openapi.json npm run api:gen
 All Orval-generated requests go through the custom mutator (`src/api/mutator.ts`).
 It will:
 
-- set `Content-Type: application/json` when there is a body and you didn’t specify a content type
+- set `Content-Type: application/json` when there is a body and you didn't specify a content type
 - add `Authorization: Bearer <token>` automatically from local mode token or Clerk session
 - parse errors into an `ApiError` with status + parsed response body
 
@@ -137,32 +136,23 @@ npm run api:gen    # regenerate typed API client via Orval
 
 There is a `frontend/Dockerfile` used by the root `compose.yml`.
 
-If you’re working on self-hosting, prefer running compose from the repo root so the backend/db are aligned with the documented ports/env.
+All configuration is runtime — the same Docker image works for both `local` and `clerk` auth modes. Set `AUTH_MODE`, `BACKEND_URL`, `CLERK_PUBLISHABLE_KEY`, etc. via container environment variables.
+
+If you're working on self-hosting, prefer running compose from the repo root so the backend/db are aligned with the documented ports/env.
 
 ## Troubleshooting
-
-### `NEXT_PUBLIC_API_URL is not set`
-
-The API client throws if `NEXT_PUBLIC_API_URL` is missing.
-
-Fix:
-
-```bash
-cp .env.example .env.local
-# then edit .env.local if your backend URL differs
-```
 
 ### Frontend loads, but API calls fail (CORS / network errors)
 
 - Confirm backend is up: http://localhost:8000/healthz
-- Confirm `NEXT_PUBLIC_API_URL` points to the correct host/port.
-- If accessing from another device (LAN), use a reachable backend URL (not `localhost`).
+- Check the `BACKEND_URL` env var on the frontend container/process points to the correct backend host/port.
+- In Docker, `BACKEND_URL` should use the Docker service name (e.g. `http://backend:8000`).
 
 ### Wrong auth mode UI
 
-- Ensure `NEXT_PUBLIC_AUTH_MODE` matches backend `AUTH_MODE`.
-- For local mode, set `NEXT_PUBLIC_AUTH_MODE=local`.
-- For Clerk mode, set `NEXT_PUBLIC_AUTH_MODE=clerk` and a real Clerk publishable key.
+- Ensure `AUTH_MODE` matches on both backend and frontend.
+- For local mode, set `AUTH_MODE=local`.
+- For Clerk mode, set `AUTH_MODE=clerk` and a real Clerk publishable key via `CLERK_PUBLISHABLE_KEY`.
 
 ### Dev server blocked by origin restrictions
 
@@ -174,4 +164,4 @@ Notes:
 
 - Local dev should work via `http://localhost:3000` and `http://127.0.0.1:3000`.
 - LAN dev should work via the configured LAN IP (e.g. `http://192.168.1.101:3000`) **only** if you bind the dev server to all interfaces (`npm run dev:lan`).
-- If you bind Next to `127.0.0.1` only, remote LAN clients won’t connect.
+- If you bind Next to `127.0.0.1` only, remote LAN clients won't connect.

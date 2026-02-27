@@ -1,19 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { resolveSignInRedirectUrl } from "@/auth/redirects";
 
 describe("resolveSignInRedirectUrl", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
+  it("uses fallbackOverride when redirect is missing", () => {
+    expect(resolveSignInRedirectUrl(null, "/boards")).toBe("/boards");
   });
 
-  it("uses env fallback when redirect is missing", () => {
-    vi.stubEnv("NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL", "/boards");
-
-    expect(resolveSignInRedirectUrl(null)).toBe("/boards");
-  });
-
-  it("defaults to /onboarding when no env fallback is set", () => {
+  it("defaults to /onboarding when no fallback is provided", () => {
     expect(resolveSignInRedirectUrl(null)).toBe("/onboarding");
   });
 
@@ -24,17 +18,13 @@ describe("resolveSignInRedirectUrl", () => {
   });
 
   it("rejects protocol-relative urls", () => {
-    vi.stubEnv("NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL", "/activity");
-
-    expect(resolveSignInRedirectUrl("//evil.example.com/path")).toBe(
+    expect(resolveSignInRedirectUrl("//evil.example.com/path", "/activity")).toBe(
       "/activity",
     );
   });
 
   it("rejects external absolute urls", () => {
-    vi.stubEnv("NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL", "/activity");
-
-    expect(resolveSignInRedirectUrl("https://evil.example.com/steal")).toBe(
+    expect(resolveSignInRedirectUrl("https://evil.example.com/steal", "/activity")).toBe(
       "/activity",
     );
   });

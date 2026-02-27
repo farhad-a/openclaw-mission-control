@@ -54,8 +54,6 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_AUTH_MODE: ${AUTH_MODE}
     # Optional, user-managed env file.
     # IMPORTANT: do NOT load `.env.example` here because it contains non-empty
     # placeholder Clerk keys, which can accidentally flip Clerk "on".
@@ -63,9 +61,12 @@ services:
       - path: ./frontend/.env
         required: false
     environment:
-      # BACKEND_URL is read at runtime by next.config.ts rewrites — not baked at build time.
+      # All frontend config is runtime — no build args needed.
       BACKEND_URL: http://backend:8000
-      NEXT_PUBLIC_AUTH_MODE: ${AUTH_MODE}
+      AUTH_MODE: ${AUTH_MODE}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      CLERK_AFTER_SIGN_OUT_URL: ${CLERK_AFTER_SIGN_OUT_URL:-/}
+      CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: ${CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:-/onboarding}
     depends_on:
       - backend
     ports:

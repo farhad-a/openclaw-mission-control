@@ -12,26 +12,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
 
-# Auth mode is baked at build time (client bundle). Default: local (self-host).
-# Override via --build-arg NEXT_PUBLIC_AUTH_MODE=clerk for Clerk deployments.
-ARG NEXT_PUBLIC_AUTH_MODE=local
-ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
-
 RUN npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ARG NEXT_PUBLIC_AUTH_MODE=local
 
-# NEXT_PUBLIC_AUTH_MODE is inlined at build time. BACKEND_URL is read at
-# runtime by next.config.ts rewrites — set it via container environment.
-ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
+# All config is runtime — set AUTH_MODE, CLERK_PUBLISHABLE_KEY, BACKEND_URL,
+# etc. via container environment. No build args needed.
 
 COPY --from=builder /app/.next ./.next
-# `public/` is optional in Next.js apps; repo may not have it.
-# Avoid failing the build when the directory is absent.
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.ts ./next.config.ts

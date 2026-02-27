@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import GlobalApprovalsPage from "./page";
+import { AuthMode } from "@/auth/mode";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { RuntimeConfigProvider } from "@/components/providers/RuntimeConfigProvider";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/approvals",
@@ -59,31 +61,28 @@ vi.mock("@clerk/nextjs", () => {
 
 describe("/approvals auth boundary", () => {
   it("renders without ClerkProvider runtime errors when publishable key is a placeholder", () => {
-    const previousAuthMode = process.env.NEXT_PUBLIC_AUTH_MODE;
-    const previousPublishableKey =
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-    process.env.NEXT_PUBLIC_AUTH_MODE = "local";
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "placeholder";
     window.sessionStorage.clear();
 
-    try {
-      render(
+    render(
+      <RuntimeConfigProvider
+        authMode={AuthMode.Local}
+        clerkPublishableKey="placeholder"
+        clerkAfterSignOutUrl="/"
+        clerkSignInFallbackRedirectUrl="/onboarding"
+      >
         <AuthProvider>
           <QueryProvider>
             <GlobalApprovalsPage />
           </QueryProvider>
-        </AuthProvider>,
-      );
+        </AuthProvider>
+      </RuntimeConfigProvider>,
+    );
 
-      expect(
-        screen.getByRole("heading", { name: /local authentication/i }),
-      ).toBeInTheDocument();
-      expect(screen.getByLabelText(/access token/i)).toBeInTheDocument();
-    } finally {
-      process.env.NEXT_PUBLIC_AUTH_MODE = previousAuthMode;
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = previousPublishableKey;
-      window.sessionStorage.clear();
-    }
+    expect(
+      screen.getByRole("heading", { name: /local authentication/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/access token/i)).toBeInTheDocument();
+
+    window.sessionStorage.clear();
   });
 });

@@ -4,10 +4,11 @@ function isSafeRelativePath(value: string): boolean {
   return value.startsWith("/") && !value.startsWith("//");
 }
 
-export function resolveSignInRedirectUrl(rawRedirect: string | null): string {
-  const fallback =
-    process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ??
-    DEFAULT_SIGN_IN_REDIRECT;
+export function resolveSignInRedirectUrl(
+  rawRedirect: string | null,
+  fallbackOverride?: string,
+): string {
+  const fallback = fallbackOverride ?? DEFAULT_SIGN_IN_REDIRECT;
 
   if (!rawRedirect) return fallback;
 

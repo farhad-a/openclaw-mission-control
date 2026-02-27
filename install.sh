@@ -17,7 +17,6 @@ FORCE_MODE=""
 FORCE_BACKEND_PORT=""
 FORCE_FRONTEND_PORT=""
 FORCE_PUBLIC_HOST=""
-FORCE_API_URL=""
 FORCE_TOKEN_MODE=""
 FORCE_LOCAL_AUTH_TOKEN=""
 FORCE_DB_MODE=""
@@ -58,7 +57,6 @@ Options:
   --backend-port <port>
   --frontend-port <port>
   --public-host <host>
-  --api-url <url>
   --token-mode <generate|manual>
   --local-auth-token <token>      Required when --token-mode manual
   --db-mode <docker|external>     Local mode only
@@ -103,14 +101,6 @@ parse_args() {
           die "Missing value for --public-host"
         fi
         FORCE_PUBLIC_HOST="$2"
-        shift 2
-        ;;
-      --api-url)
-        if [[ $# -lt 2 || -z ${2:-} ]]; then
-          usage
-          die "Missing value for --api-url"
-        fi
-        FORCE_API_URL="$2"
         shift 2
         ;;
       --token-mode)
@@ -608,7 +598,6 @@ main() {
   local public_host
   local backend_port
   local frontend_port
-  local next_public_api_url
   local token_mode
   local local_auth_token
   local db_mode="docker"
@@ -658,12 +647,6 @@ main() {
   else
     public_host="$(prompt_with_default "Public host/IP for browser access" "localhost")"
   fi
-  if [[ -n "$FORCE_API_URL" ]]; then
-    next_public_api_url="$FORCE_API_URL"
-  else
-    next_public_api_url="$(prompt_with_default "Public API URL used by frontend" "http://$public_host:$backend_port")"
-  fi
-
   if [[ -n "$FORCE_TOKEN_MODE" ]]; then
     token_mode="$FORCE_TOKEN_MODE"
   else
@@ -733,7 +716,6 @@ main() {
   upsert_env_value "$REPO_ROOT/.env" "FRONTEND_PORT" "$frontend_port"
   upsert_env_value "$REPO_ROOT/.env" "AUTH_MODE" "local"
   upsert_env_value "$REPO_ROOT/.env" "LOCAL_AUTH_TOKEN" "$local_auth_token"
-  upsert_env_value "$REPO_ROOT/.env" "NEXT_PUBLIC_API_URL" "$next_public_api_url"
   upsert_env_value "$REPO_ROOT/.env" "CORS_ORIGINS" "http://$public_host:$frontend_port"
 
   if [[ "$deployment_mode" == "docker" ]]; then
@@ -786,8 +768,8 @@ SUMMARY
   upsert_env_value "$REPO_ROOT/backend/.env" "BASE_URL" "http://$public_host:$backend_port"
   upsert_env_value "$REPO_ROOT/backend/.env" "DB_AUTO_MIGRATE" "false"
 
-  upsert_env_value "$REPO_ROOT/frontend/.env" "NEXT_PUBLIC_API_URL" "$next_public_api_url"
-  upsert_env_value "$REPO_ROOT/frontend/.env" "NEXT_PUBLIC_AUTH_MODE" "local"
+  upsert_env_value "$REPO_ROOT/frontend/.env" "BACKEND_URL" "http://localhost:$backend_port"
+  upsert_env_value "$REPO_ROOT/frontend/.env" "AUTH_MODE" "local"
 
   info "Installing backend/frontend dependencies..."
   make setup

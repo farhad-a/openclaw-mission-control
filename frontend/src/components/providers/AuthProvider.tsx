@@ -7,12 +7,14 @@ import { isLikelyValidClerkPublishableKey } from "@/auth/clerkKey";
 import {
   clearLocalAuthToken,
   getLocalAuthToken,
-  isLocalAuthMode,
+  useIsLocalAuthMode,
 } from "@/auth/localAuth";
 import { LocalAuthLogin } from "@/components/organisms/LocalAuthLogin";
+import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const localMode = isLocalAuthMode();
+  const localMode = useIsLocalAuthMode();
+  const { clerkPublishableKey, clerkAfterSignOutUrl } = useRuntimeConfig();
 
   useEffect(() => {
     if (!localMode) {
@@ -27,18 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const afterSignOutUrl =
-    process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL ?? "/";
-
-  if (!isLikelyValidClerkPublishableKey(publishableKey)) {
+  if (!isLikelyValidClerkPublishableKey(clerkPublishableKey)) {
     return <>{children}</>;
   }
 
   return (
     <ClerkProvider
-      publishableKey={publishableKey}
-      afterSignOutUrl={afterSignOutUrl}
+      publishableKey={clerkPublishableKey}
+      afterSignOutUrl={clerkAfterSignOutUrl}
     >
       {children}
     </ClerkProvider>

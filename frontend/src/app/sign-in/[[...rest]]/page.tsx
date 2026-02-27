@@ -3,19 +3,23 @@
 import { useSearchParams } from "next/navigation";
 import { SignIn } from "@clerk/nextjs";
 
-import { isLocalAuthMode } from "@/auth/localAuth";
+import { useIsLocalAuthMode } from "@/auth/localAuth";
 import { resolveSignInRedirectUrl } from "@/auth/redirects";
 import { LocalAuthLogin } from "@/components/organisms/LocalAuthLogin";
+import { useRuntimeConfig } from "@/components/providers/RuntimeConfigProvider";
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
+  const localMode = useIsLocalAuthMode();
+  const { clerkSignInFallbackRedirectUrl } = useRuntimeConfig();
 
-  if (isLocalAuthMode()) {
+  if (localMode) {
     return <LocalAuthLogin />;
   }
 
   const forceRedirectUrl = resolveSignInRedirectUrl(
     searchParams.get("redirect_url"),
+    clerkSignInFallbackRedirectUrl,
   );
 
   // Dedicated sign-in route for Cypress E2E.

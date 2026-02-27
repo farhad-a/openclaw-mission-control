@@ -6,7 +6,7 @@ import {
   SignInButton,
   SignedIn,
   SignedOut,
-  isClerkEnabled,
+  useIsClerkEnabled,
 } from "@/auth/clerk";
 
 const ArrowIcon = () => (
@@ -28,7 +28,7 @@ const ArrowIcon = () => (
 );
 
 export function LandingHero() {
-  const clerkEnabled = isClerkEnabled();
+  const clerkEnabled = useIsClerkEnabled();
 
   return (
     <>

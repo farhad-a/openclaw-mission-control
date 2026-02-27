@@ -7,13 +7,13 @@ import {
   SignInButton,
   SignedIn,
   SignedOut,
-  isClerkEnabled,
+  useIsClerkEnabled,
 } from "@/auth/clerk";
 
 import { UserMenu } from "@/components/organisms/UserMenu";
 
 export function LandingShell({ children }: { children: ReactNode }) {
-  const clerkEnabled = isClerkEnabled();
+  const clerkEnabled = useIsClerkEnabled();
 
   return (
     <div className="landing-enterprise">

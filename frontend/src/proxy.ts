@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
+import type { NextRequest, NextFetchEvent } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 import { isLikelyValidClerkPublishableKey } from "@/auth/clerkKey";
 import { AuthMode } from "@/auth/mode";
 
-const isClerkEnabled = () =>
-  process.env.NEXT_PUBLIC_AUTH_MODE !== AuthMode.Local &&
-  isLikelyValidClerkPublishableKey(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getBackendUrl(): string {
+  return (process.env.BACKEND_URL ?? "http://localhost:8000").replace(
+    /\/+$/,
+    "",
   );
+}
+
+const isClerkEnabled = () =>
+  process.env.AUTH_MODE !== AuthMode.Local &&
+  isLikelyValidClerkPublishableKey(process.env.CLERK_PUBLISHABLE_KEY);
 
 // Public routes include home and sign-in paths to avoid redirect loops.
 const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
@@ -32,23 +42,45 @@ function returnBackUrlFor(req: Request): string {
   return `${requestOrigin(req)}${pathname}${search}${hash}`;
 }
 
-export default isClerkEnabled()
-  ? clerkMiddleware(async (auth, req) => {
-      if (isClerkInternalPath(new URL(req.url).pathname)) {
-        return NextResponse.next();
-      }
-      if (isPublicRoute(req)) return NextResponse.next();
+// ---------------------------------------------------------------------------
+// Clerk handler (always instantiated; only invoked when Clerk is enabled)
+// ---------------------------------------------------------------------------
 
-      // In middleware, `auth()` resolves to a session/auth context (Promise in current typings).
-      // Use redirectToSignIn() (instead of protect()) for unauthenticated requests.
-      const { userId, redirectToSignIn } = await auth();
-      if (!userId) {
-        return redirectToSignIn({ returnBackUrl: returnBackUrlFor(req) });
-      }
+const clerkHandler = clerkMiddleware(async (auth, req) => {
+  if (isClerkInternalPath(new URL(req.url).pathname)) {
+    return NextResponse.next();
+  }
+  if (isPublicRoute(req)) return NextResponse.next();
 
-      return NextResponse.next();
-    })
-  : () => NextResponse.next();
+  // Use redirectToSignIn() (instead of protect()) for unauthenticated requests.
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId) {
+    return redirectToSignIn({ returnBackUrl: returnBackUrlFor(req) });
+  }
+
+  return NextResponse.next();
+});
+
+// ---------------------------------------------------------------------------
+// Main proxy (Next.js 16 convention: named `proxy` export)
+// ---------------------------------------------------------------------------
+
+export function proxy(request: NextRequest, event: NextFetchEvent) {
+  // 1. API proxy: rewrite /api/v1/* to backend at runtime
+  if (request.nextUrl.pathname.startsWith("/api/v1/")) {
+    const target = new URL(
+      `${getBackendUrl()}${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    return NextResponse.rewrite(target);
+  }
+
+  // 2. Clerk auth middleware (when enabled)
+  if (isClerkEnabled()) {
+    return clerkHandler(request, event);
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
