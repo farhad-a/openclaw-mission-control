@@ -1,11 +1,5 @@
 export function getApiBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_API_URL;
-  if (!raw) {
-    throw new Error("NEXT_PUBLIC_API_URL is not set.");
-  }
-  const normalized = raw.replace(/\/+$/, "");
-  if (!normalized) {
-    throw new Error("NEXT_PUBLIC_API_URL is invalid.");
-  }
-  return normalized;
+  // API calls use relative URLs — Next.js proxies /api/v1/* to the backend at
+  // runtime via next.config.ts rewrites.
+  return "";
 }

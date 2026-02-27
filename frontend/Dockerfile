@@ -12,9 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
 
-# Allows configuring the API URL at build time.
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Auth mode is baked at build time (client bundle). Default: local (self-host).
+# Override via --build-arg NEXT_PUBLIC_AUTH_MODE=clerk for Clerk deployments.
 ARG NEXT_PUBLIC_AUTH_MODE=local
 ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
 
@@ -26,10 +25,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ARG NEXT_PUBLIC_AUTH_MODE=local
 
-# NEXT_PUBLIC_* vars are inlined into the client bundle at build time.
-# Default is "local" (self-host). Override via --build-arg NEXT_PUBLIC_AUTH_MODE=clerk
-# when building for Clerk-based deployments.
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
+# NEXT_PUBLIC_AUTH_MODE is inlined at build time. BACKEND_URL is read at
+# runtime by next.config.ts rewrites — set it via container environment.
 ENV NEXT_PUBLIC_AUTH_MODE=${NEXT_PUBLIC_AUTH_MODE}
 
 COPY --from=builder /app/.next ./.next

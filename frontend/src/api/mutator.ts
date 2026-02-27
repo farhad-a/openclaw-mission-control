@@ -39,12 +39,8 @@ export const customFetch = async <T>(
   url: string,
   options: RequestInit,
 ): Promise<T> => {
-  const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!rawBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not set.");
-  }
-  const baseUrl = rawBaseUrl.replace(/\/+$/, "");
-
+  // API calls use relative URLs — Next.js proxies /api/v1/* to the backend at
+  // runtime via next.config.ts rewrites, so no hardcoded base URL is needed.
   const headers = new Headers(options.headers);
   const hasBody = options.body !== undefined && options.body !== null;
   if (hasBody && !headers.has("Content-Type")) {
@@ -63,7 +59,7 @@ export const customFetch = async <T>(
     }
   }
 
-  const response = await fetch(`${baseUrl}${url}`, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
